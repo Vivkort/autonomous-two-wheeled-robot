@@ -1,0 +1,27 @@
+# ROS 2 / colcon
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Data / large files (keep the repo light; store big scans elsewhere)
+*.bag
+*.db3
+*.ply
+*.pcd
+
+# Media originals (optional: keep compressed versions only)
+media/raw/
