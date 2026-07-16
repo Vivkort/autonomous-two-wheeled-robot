@@ -31,6 +31,7 @@ setup(
             'my_first_node = robot_intro.my_first_node:main',
             'speed_ramp = robot_intro.speed_ramp:main',
             'wall_avoider = robot_intro.wall_avoider:main',
+            'wall_avoider_proportional = robot_intro.wall_avoider_proportional:main',
         ],
     },
 )
