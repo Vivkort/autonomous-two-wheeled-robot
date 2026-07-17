@@ -9,6 +9,15 @@
         <color rgba="0.2 0.2 0.8 1.0"/>
     </material>
   </visual>
+  <collision>
+      <geometry>
+        <box size="0.3 0.2 0.1"/>
+      </geometry>
+  </collision>
+  <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.0042" ixy="0.0" ixz="0.0" iyy="0.0083" iyz="0.0" izz="0.0108"/>
+  </inertial>
  </link>
  
  <link name="left_wheel">
@@ -21,6 +30,17 @@
             <color rgba="0.1 0.1 0.1 1.0"/>
        </material>
      </visual>
+     <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.04"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.00008" ixy="0.0" ixz="0.0" iyy="0.00008" iyz="0.0" izz="0.00013"/>
+    </inertial>
    </link>
 
    <joint name="left_wheel_joint" type="continuous">
@@ -40,6 +60,17 @@
             <color rgba="0.1 0.1 0.1 1.0"/>
        </material>
      </visual>
+     <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.04"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.00008" ixy="0.0" ixz="0.0" iyy="0.00008" iyz="0.0" izz="0.00013"/>
+    </inertial>
    </link>
 
    <joint name="right_wheel_joint" type="continuous">
@@ -58,6 +89,15 @@
             <color rgba="1.0 0.1 0.1 1.0"/>
       </material>
     </visual>
+    <collision>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00002" ixy="0.0" ixz="0.0" iyy="0.00002" iyz="0.0" izz="0.00002"/>
+    </inertial>
   </link>
 
   <joint name="caster_joint" type="fixed">
@@ -65,4 +105,17 @@
     <child link="caster"/>
     <origin xyz="0.12 0 -0.05" rpy="0 0 0"/>
   </joint>
+
+  <gazebo>
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.24</wheel_separation>
+      <wheel_radius>0.05</wheel_radius>
+      <topic>cmd_vel</topic>
+      <odom_topic>odom</odom_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+    </plugin>
+  </gazebo>
 </robot>
