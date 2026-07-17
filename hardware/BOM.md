@@ -5,9 +5,9 @@ Prices are approximate Amazon US street prices, mid-2026. Update the "Bought" co
 | Part | Purpose | ~Price | Bought? | Link/notes |
 |---|---|---|---|---|
 | NVIDIA Jetson Orin Nano Super Dev Kit | Main compute (the brain) | $500 | [NO] | Or repurpose an Nvidia-GPU laptop for early phases |
-| NVMe SSD 256 GB (M.2 2280) | OS + storage | $30 | [ ] | Jetson boots better from SSD than SD |
-| Slamtec RPLidar C1 | 360 deg 2D lidar (SLAM) | $100 | [ ] | USB via included serial adapter |
-| Luxonis OAK-D Lite | Depth camera (3D obstacles + future AI) | $149 | [ ] | USB 3.0; on-camera AI |
+| NVMe SSD 256 GB (M.2 2280) | OS + storage | $30 | [NO] | Jetson boots better from SSD than SD |
+| Slamtec RPLidar C1 | 360 deg 2D lidar (SLAM) | $100 | [YES] | USB via included serial adapter |
+| Luxonis OAK-D Lite | Depth camera (3D obstacles + future AI) | $220 | [YES] | USB 3.0; on-camera AI |
 | 2x DC gear motors w/ quadrature encoders | Drive + odometry | $30 | [ ] | ENCODERS REQUIRED |
 | TB6612FNG motor driver | Dual H-bridge amplifier | $8 | [ ] | Prefer over L298N |
 | ESP32 dev board | Real-time motor/encoder MCU | $10 | [YES] | Runs micro-ROS |
