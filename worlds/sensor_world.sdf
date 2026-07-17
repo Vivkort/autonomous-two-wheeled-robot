@@ -11,7 +11,6 @@
       <render_engine>ogre2</render_engine>
     </plugin>
 
-    <!-- Sun -->
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -20,7 +19,6 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <!-- Ground plane -->
     <model name="ground_plane">
       <static>true</static>
       <link name="link">
@@ -34,16 +32,55 @@
       </link>
     </model>
 
-    <!-- An obstacle for the lidar to detect -->
-    <model name="box_obstacle">
-      <static>true</static>
-      <pose>2 0 0.25 0 0 0</pose>
+    <!-- Room walls (an 8x8 m enclosure) -->
+    <model name="wall_north">
+      <static>true</static><pose>0 4 0.5 0 0 0</pose>
       <link name="link">
-        <collision name="collision"><geometry><box><size>0.5 0.5 0.5</size></box></geometry></collision>
-        <visual name="visual">
-          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
-          <material><ambient>0.8 0.2 0.2 1</ambient><diffuse>0.8 0.2 0.2 1</diffuse></material>
-        </visual>
+        <collision name="c"><geometry><box><size>8.2 0.2 1</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>8.2 0.2 1</size></box></geometry>
+          <material><ambient>0.6 0.6 0.7 1</ambient><diffuse>0.6 0.6 0.7 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_south">
+      <static>true</static><pose>0 -4 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>8.2 0.2 1</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>8.2 0.2 1</size></box></geometry>
+          <material><ambient>0.6 0.6 0.7 1</ambient><diffuse>0.6 0.6 0.7 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_east">
+      <static>true</static><pose>4 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 8.2 1</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 8.2 1</size></box></geometry>
+          <material><ambient>0.6 0.6 0.7 1</ambient><diffuse>0.6 0.6 0.7 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_west">
+      <static>true</static><pose>-4 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 8.2 1</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 8.2 1</size></box></geometry>
+          <material><ambient>0.6 0.6 0.7 1</ambient><diffuse>0.6 0.6 0.7 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- A couple of obstacles inside the room -->
+    <model name="box_obstacle">
+      <static>true</static><pose>2 1 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.5 0.5 0.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+          <material><ambient>0.8 0.2 0.2 1</ambient><diffuse>0.8 0.2 0.2 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cyl_obstacle">
+      <static>true</static><pose>-2 -1.5 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.3</radius><length>0.8</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.3</radius><length>0.8</length></cylinder></geometry>
+          <material><ambient>0.2 0.6 0.2 1</ambient><diffuse>0.2 0.6 0.2 1</diffuse></material></visual>
       </link>
     </model>
 
