@@ -32,6 +32,7 @@ setup(
             'speed_ramp = robot_intro.speed_ramp:main',
             'wall_avoider = robot_intro.wall_avoider:main',
             'wall_avoider_proportional = robot_intro.wall_avoider_proportional:main',
+            'go_to_goal = robot_intro.go_to_goal:main',
         ],
     },
 )
