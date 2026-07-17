@@ -1,9 +1,9 @@
-import rclpy
-from rclpy.node import Node
-from geometry_msgs.msg import Twist
-from turtlesim.msg import Pose
+import rclpy # type: ignore
+from rclpy.node import Node # type: ignore
+from geometry_msgs.msg import Twist # type: ignore
+from turtlesim.msg import Pose # type: ignore
 import math
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point 
 
 class GoToGoal(Node):
     def __init__(self):
