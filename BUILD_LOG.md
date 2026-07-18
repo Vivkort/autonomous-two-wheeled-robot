@@ -39,8 +39,6 @@ Newest entries at the top. Keep it honest — log what broke and how you fixed i
 **What broke / what I'm stuck on:** Forgot to add main() function, and was stuck figuring out what tools i could get from node
 **How I fixed it (or next step to try):** Read documentation/ask Claude
 **Time spent:** 2 hrs
-
-
 ---
 
 ## 26-7-13 Project Kickoff
