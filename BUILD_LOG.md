@@ -12,6 +12,15 @@ Newest entries at the top. Keep it honest — log what broke and how you fixed i
 **Time spent:**
 **Photo/video:** media/filename
 
+## 2026-07-17 — Simulation
+**Goal today:** Get basic autonomy/pathfinding for Craig(my robot's name) and get his lidar up and running.
+**What I did:** Modeled Craig's URDF - chassis, wheels, caster, lidar - with visuals, collision, and inertia; viewed in RViz. SLAM with slam_toolbox -> built a live map of a walled room. Added a simulated 360° lidar. Nav2 → autonomous navigation to clicked goals, routing around obstacles.
+**What worked:** Everything basically in the end.
+**What broke / what I'm stuck on:** Lidar rays wouldn't render in Gazebo (WSL quirk), but /scan published fine. SLAM spammed "failed to compute odom pose" -> params file wasn't loading (fell back to base_footprint). Root cause: ~ doesn't expand in key:=~/path. Nav2 whack-a-mole: collision_monitor needed observation_sources, docking_server needed dock_plugins. Typos: gz_frame -> gz_frame_id & lidar length 0.2 -> 0.02.
+**How I fixed it (or next step to try):** Visualized lidar rays in RViz instead, used $HOME for SLAM. Added config sections to Nav2.
+**Time spent:** ~6 hours
+**Photo/video:** media/filename (**Add this later**)
+
 
 
 ## 2026-07-16 — Proportional heading controller
