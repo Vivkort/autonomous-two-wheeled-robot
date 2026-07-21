@@ -42,7 +42,8 @@ class BalanceController(Node):
         self.K_rate = 0.446   # N.m per rad/s of tipping
         self.K_wvel = 0.1971   # N.m per rad/s of wheel speed
         self.K_wpos = 0.02887   # N.m per rad of wheel angle
-
+        self.K_int = 0.0015       # in __init__
+        self.pos_int = 0.0
         # Traction ceiling is ~0.81 N.m/wheel at mu=1.5. The design peaks at
         # 0.24 for a 3 deg disturbance, so 0.4 leaves headroom without ever
         # commanding more force than the floor can transmit.
@@ -72,7 +73,7 @@ class BalanceController(Node):
         self._n = 0
         self._t0 = time.monotonic()
         self._log = open('/home/viktor/balance_data.csv', 'w')
-        self._log.write('t,pitch,rate,vel,pos,tau\n')
+        self._log.write('t,pitch,rate,vel,pos,tau,pint\n')     # header, line 76
     @staticmethod
     def pitch_from(q):
         sinp = 2.0 * (q.w * q.y - q.z * q.x)
@@ -87,11 +88,15 @@ class BalanceController(Node):
         pitch = self.pitch_from(msg.orientation)
         rate = msg.angular_velocity.y
 
+        self.pos_int += self.wheel_pos * 0.0042        # dt at 240 Hz
+        self.pos_int = max(-400.0, min(400.0, self.pos_int))
+
         torque = (self.K_pitch * pitch
                   + self.K_rate * rate
                   + self.K_wvel * self.wheel_vel
-                  + self.K_wpos * self.wheel_pos)
-
+                  + self.K_wpos * self.wheel_pos
+                  + self.K_int * self.pos_int)
+        
         torque = max(-self.max_torque, min(self.max_torque, torque))
 
         if abs(pitch) > self.fall_limit:
@@ -108,8 +113,9 @@ class BalanceController(Node):
   #          f'tau={torque:+.3f}',
    #         throttle_duration_sec=0.05)
         self._log.write(f'{time.monotonic():.4f},{pitch:.5f},{rate:.5f},'
-                        f'{self.wheel_vel:.4f},{self.wheel_pos:.4f},{torque:.5f}\n')
-
+                        f'{self.wheel_vel:.4f},{self.wheel_pos:.4f},{torque:.5f},'
+                        f'{self.pos_int:.3f}\n')
+        
         self._n += 1
         now = time.monotonic()
         if now - self._t0 >= 2.0:
