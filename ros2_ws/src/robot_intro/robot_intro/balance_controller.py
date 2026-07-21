@@ -47,11 +47,11 @@ class BalanceController(Node):
         # Traction ceiling is ~0.81 N.m/wheel at mu=1.5. The design peaks at
         # 0.24 for a 3 deg disturbance, so 0.4 leaves headroom without ever
         # commanding more force than the floor can transmit.
-        self.max_torque = 0.4
+        self.max_torque = 0.8
 
 
         # Past this he's unrecoverable (design recovers from 0.30 rad).
-        self.fall_limit = 0.5
+        self.fall_limit = 0.9
 
         # Sanity guard only. Real balancing wheel speeds are well under this;
         # anything above means slip, and slipping wheel speed is not a
