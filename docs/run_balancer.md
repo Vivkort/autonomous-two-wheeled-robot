@@ -12,10 +12,23 @@ ln -sf "/mnt/c/Users/ultra/OneDrive/Documents/Engineering Projects/autonomous-ro
 
 ## Launch sequence — one command per Ubuntu terminal
 
-**1. Gazebo world**
+**1. Gazebo world — DART (the default)**
 ```bash
 gz sim ~/balance_world.sdf
 ```
+> ⚠️ **Do NOT use `--physics-engine gz-physics-bullet-featherstone-plugin`.**
+> Bullet-featherstone balances fine but **cannot steer** — it does not transmit
+> differential wheel torque into yaw. Measured: 0.74 N·m of yaw moment held for
+> 30 s produced *zero* rotation on craig2, and a minimal two-wheeled test rig
+> managed 0.014° in four seconds against a predicted ~100 rad/s². Under DART the
+> same rig spins freely.
+>
+> We originally moved to bullet-featherstone because DART's wheel contact
+> chattered (wheel velocity reversing sign on 32–70% of samples). That turned out
+> to be a **cylinder-on-plane line contact** problem, not a DART problem — once the
+> wheel collisions became spheres, DART behaves perfectly. Both fixes were made,
+> but the solver switch was never re-tested afterwards.
+>
 > `balance_world`, not `sensor_world`. No walls, no obstacles — nothing craig2 can
 > collide with while drifting. A collision looks identical to a control failure in
 > the logs. `sensor_world` is for SLAM/Nav2 work.
@@ -59,15 +72,46 @@ Publisher only = the robot will fall and no tuning will help.
 ```bash
 cd "/mnt/c/Users/ultra/OneDrive/Documents/Engineering Projects/autonomous-robot"
 source install/setup.bash
-PYTHONUNBUFFERED=1 RCUTILS_LOGGING_BUFFERED_STREAM=0 ros2 run robot_intro balance_controller 2>&1 | tee "/mnt/c/Users/ultra/OneDrive/Documents/Engineering Projects/autonomous-robot/log/balance_run.txt"
+ros2 run robot_intro balance_controller
 ```
-> The env vars are required when piping to `tee`. Without them Python block-buffers
-> and Ctrl+C kills the process before the buffer flushes, leaving a 0-byte log.
+> Data goes to the CSV, not stdout — the only thing printed here is `CONTROL RATE`
+> every 2 s. **That number should read ~240.** If it reads 10, something in the loop
+> is blocking (see the CSV note above).
 >
 > `colcon build --symlink-install` (from the project root) is only needed when you
 > **add a new entry point** to `setup.py`. Editing an existing node is live.
 
 **5. Press ▶ play in Gazebo.**
+
+**6. Drive him (optional)** — teleop, in its own terminal:
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+> Install if missing: `sudo apt install ros-jazzy-teleop-twist-keyboard`.
+>
+> `i`/`,` = forward/back, `j`/`l` = turn, `k` = stop. Start slow — `-` a few times to
+> drop the speed before touching anything; teleop defaults to 0.5 m/s, which is a
+> brisk shove for a balancing robot.
+>
+> The controller integrates the commanded velocity into a **moving position setpoint**,
+> so releasing the key parks him where he stopped rather than letting him coast. No
+> command = position hold, which is exactly the standing behaviour.
+
+**Nothing to bridge for `/cmd_vel`** — it's ROS-side only, teleop straight to the
+controller. Gazebo never sees it.
+
+## Reading the CSV
+
+The controller writes every sample (no throttling, no terminal) to
+`/home/viktor/balance_data.csv`. Copy it over after a run:
+```bash
+cp /home/viktor/balance_data.csv "/mnt/c/Users/ultra/OneDrive/Documents/Engineering Projects/autonomous-robot/log/"
+```
+Columns: `t, pitch, rate, vel, pos, tau, pint, cmd, tgt`
+
+> **Never log to stdout in the control loop.** A single throttled `get_logger().info()`
+> piped through `tee` into a terminal held the loop at **10 Hz** while 222 IMU messages
+> a second arrived — blocked on I/O at ~0% CPU. Write to a file handle.
 
 ## Gotchas — each of these cost real hours
 

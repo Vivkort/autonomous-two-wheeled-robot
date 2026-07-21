@@ -37,10 +37,15 @@
         </visual>
         <collision>
             <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-            <!-- 0.08 wide, not 0.04: a thin cylinder edge-on to a plane gives Gazebo
-                 a near-line contact, and friction is unreliable across it. Wider tyre
-                 = more contact points = the wheels actually grip instead of spinning. -->
-            <geometry><cylinder radius="0.08" length="0.08"/></geometry>
+            <!-- SPHERE collision, cylinder visual. A 0.08 m wide cylinder contacts the
+                 ground along an 8 cm LINE, and rotating that line about the vertical
+                 (i.e. yawing) means points at each end must slide in opposite
+                 directions. That drilling friction is ~0.65 N.m for both wheels -
+                 more than the differential torque available, so craig2 could not turn
+                 at all. A sphere touches at a POINT: no drilling resistance, while
+                 rolling and lateral grip are unaffected. Radius must match the
+                 cylinder so ride height and the wheel-radius maths stay correct. -->
+            <geometry><sphere radius="0.08"/></geometry>
         </collision>
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -53,7 +58,7 @@
                  drivetrain adds the motor rotor inertia reflected through the
                  gearbox (~30:1 => rotor inertia x900), which dominates. 0.001
                  models wheel + geared motor. Without it the wheel spins up at
-                 ~3200 rad/s^2 -- faster than the 100 Hz control loop can observe. -->
+                 ~3200 rad/s^2  faster than the 100 Hz control loop can observe. -->
             <!-- iyy is the SPIN axis: wheel disc + motor rotor reflected through the
                  ~30:1 gearbox (rotor inertia x900), which dominates. Without it the
                  wheel spins up at ~3200 rad/s^2, faster than the 100 Hz loop can see.
@@ -68,7 +73,14 @@
     <joint name="left_wheel_joint" type="continuous">
         <parent link="base_link"/>
         <child link="left_wheel"/>
-        <origin xyz="0 0.07 0" rpy="0 0 0"/>
+        <!-- y=0.10, not 0.07. The wheel collision spheres have radius 0.08, so at
+             +-0.07 (0.14 apart) they INTERPENETRATE by 2 cm through the centreline.
+             Driving forward both wheels turn the same way and barely rub; turning
+             needs them to counter-rotate, which is maximum relative sliding exactly
+             where they are jammed together - so yaw was locked while drive worked.
+             At +-0.10 they are 0.20 apart vs 0.16 of combined radius: clear.
+             Bonus: the yaw moment arm grows 0.07 -> 0.10, +43% turning authority. -->
+        <origin xyz="0 0.10 0" rpy="0 0 0"/>
         <axis xyz="0 1 0"/>
     </joint>
 
@@ -80,10 +92,15 @@
         </visual>
         <collision>
             <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-            <!-- 0.08 wide, not 0.04: a thin cylinder edge-on to a plane gives Gazebo
-                 a near-line contact, and friction is unreliable across it. Wider tyre
-                 = more contact points = the wheels actually grip instead of spinning. -->
-            <geometry><cylinder radius="0.08" length="0.08"/></geometry>
+            <!-- SPHERE collision, cylinder visual. A 0.08 m wide cylinder contacts the
+                 ground along an 8 cm LINE, and rotating that line about the vertical
+                 (i.e. yawing) means points at each end must slide in opposite
+                 directions. That drilling friction is ~0.65 N.m for both wheels -
+                 more than the differential torque available, so craig2 could not turn
+                 at all. A sphere touches at a POINT: no drilling resistance, while
+                 rolling and lateral grip are unaffected. Radius must match the
+                 cylinder so ride height and the wheel-radius maths stay correct. -->
+            <geometry><sphere radius="0.08"/></geometry>
         </collision>
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -96,7 +113,7 @@
                  drivetrain adds the motor rotor inertia reflected through the
                  gearbox (~30:1 => rotor inertia x900), which dominates. 0.001
                  models wheel + geared motor. Without it the wheel spins up at
-                 ~3200 rad/s^2 -- faster than the 100 Hz control loop can observe. -->
+                 ~3200 rad/s^2  faster than the 100 Hz control loop can observe. -->
             <!-- iyy is the SPIN axis: wheel disc + motor rotor reflected through the
                  ~30:1 gearbox (rotor inertia x900), which dominates. Without it the
                  wheel spins up at ~3200 rad/s^2, faster than the 100 Hz loop can see.
@@ -111,7 +128,8 @@
     <joint name="right_wheel_joint" type="continuous">
         <parent link="base_link"/>
         <child link="right_wheel"/>
-        <origin xyz="0 -0.07 0" rpy="0 0 0"/>
+        <!-- see left_wheel_joint: spheres must not overlap across the centreline -->
+        <origin xyz="0 -0.10 0" rpy="0 0 0"/>
         <axis xyz="0 1 0"/>
     </joint>
 

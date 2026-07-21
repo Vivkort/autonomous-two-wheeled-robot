@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<!--
+  MINIMAL DIFFERENTIAL-DRIVE TEST RIG.
+
+  Purpose: answer one question. Can ANY two-wheeled robot yaw in balance_world
+  using ApplyJointForce, or is something about our setup preventing rotation?
+
+  craig2 will not turn under 0.74 N.m of yaw moment, confirmed by three
+  independent measurements (IMU gyro z, odometry quaternion, and gz model pose).
+  This strips away everything that could be confounding it:
+    - no balance controller (statically stable: two wheels + a low-friction skid)
+    - no IMU, no odometry feedback loop
+    - nothing to fall over
+  Just: two wheels, two ApplyJointForce plugins, and a body.
+
+  TEST: launch balance_world with the usual bullet featherstone engine flag,
+  spawn this at z=0.05, read the pose, apply opposite torques to the two wheels,
+  read the pose again. Third RPY value is yaw.
+
+  If yaw moves, differential drive works here and the problem is specific to
+  craig2. If it does not, the problem is the world, the physics engine, or
+  ApplyJointForce itself.
+  (Exact commands are in the chat; a double hyphen cannot appear inside an
+  XML comment, which is why the launch flag is not written out here.)
+-->
+<robot name="testbot">
+
+  <!-- Flat, low, statically stable body -->
+  <link name="base_link">
+    <visual>
+      <geometry><box size="0.30 0.20 0.05"/></geometry>
+      <material name="blue"><color rgba="0.2 0.3 0.9 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.30 0.20 0.05"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="1.0"/>
+      <!-- box 0.30x0.20x0.05: ixx=m(y2+z2)/12 etc. ixx+iyy >= izz holds -->
+      <inertia ixx="0.00354" ixy="0.0" ixz="0.0" iyy="0.00771" iyz="0.0" izz="0.01083"/>
+    </inertial>
+  </link>
+
+  <link name="left_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.03"/></geometry>
+      <material name="black"><color rgba="0.1 0.1 0.1 1"/></material>
+    </visual>
+    <collision>
+      <geometry><sphere radius="0.05"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
+    </inertial>
+  </link>
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+    <origin xyz="-0.08 0.13 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="right_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.03"/></geometry>
+      <material name="black"><color rgba="0.1 0.1 0.1 1"/></material>
+    </visual>
+    <collision>
+      <geometry><sphere radius="0.05"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
+    </inertial>
+  </link>
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+    <origin xyz="-0.08 -0.13 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- Front skid: keeps it upright, slides freely so it cannot resist yaw -->
+  <link name="skid">
+    <visual><geometry><sphere radius="0.05"/></geometry></visual>
+    <collision><geometry><sphere radius="0.05"/></geometry></collision>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="5e-5" ixy="0.0" ixz="0.0" iyy="5e-5" iyz="0.0" izz="5e-5"/>
+    </inertial>
+  </link>
+  <joint name="skid_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="skid"/>
+    <origin xyz="0.12 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="left_wheel">
+    <mu1>1.5</mu1>
+    <mu2>1.5</mu2>
+  </gazebo>
+  <gazebo reference="right_wheel">
+    <mu1>1.5</mu1>
+    <mu2>1.5</mu2>
+  </gazebo>
+  <gazebo reference="skid">
+    <mu1>0.02</mu1>
+    <mu2>0.02</mu2>
+  </gazebo>
+
+  <gazebo>
+    <plugin filename="gz-sim-apply-joint-force-system" name="gz::sim::systems::ApplyJointForce">
+      <joint_name>left_wheel_joint</joint_name>
+    </plugin>
+    <plugin filename="gz-sim-apply-joint-force-system" name="gz::sim::systems::ApplyJointForce">
+      <joint_name>right_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+
+</robot>

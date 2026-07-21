@@ -29,6 +29,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64
+from geometry_msgs.msg import Twist
 
 ODOM_TOPIC = '/model/craig2/odometry'
 
@@ -40,7 +41,7 @@ class BalanceController(Node):
         # --- LQR gains, per wheel, in the units actually measured -------------
         self.K_pitch = 4.932     # N.m per rad of lean
         self.K_rate = 0.446   # N.m per rad/s of tipping
-        self.K_wvel = 0.1971   # N.m per rad/s of wheel speed
+        self.K_wvel = 1.0  # N.m per rad/s of wheel speed
         self.K_wpos = 0.02887   # N.m per rad of wheel angle
         self.K_int = 0.0015       # in __init__
         self.pos_int = 0.0
@@ -60,7 +61,12 @@ class BalanceController(Node):
 
         self.wheel_vel = 0.0
         self.wheel_pos = 0.0
+        self.odom_yaw = 0.0
+        self.K_yaw = 0.5
         
+        self.target_pos = 0.0
+        self.cmd_vel = 0.0
+        self.cmd_yaw = 0.0
 
         self.left_pub = self.create_publisher(
             Float64, '/model/craig2/joint/left_wheel_joint/cmd_force', 10)
@@ -68,53 +74,84 @@ class BalanceController(Node):
             Float64, '/model/craig2/joint/right_wheel_joint/cmd_force', 10)
         self.create_subscription(Imu, '/imu', self.balance, 10)
         self.create_subscription(Odometry, ODOM_TOPIC, self.update_odom, 10)
+        self.create_subscription(Twist, '/cmd_vel', self.update_cmd, 10)
 
         self.get_logger().info('balance_controller up (LQR full-state)')
         self._n = 0
         self._t0 = time.monotonic()
         self._log = open('/home/viktor/balance_data.csv', 'w')
-        self._log.write('t,pitch,rate,vel,pos,tau,pint\n')     # header, line 76
+        self._log.write('t,pitch,rate,vel,pos,tau,pint,cmd,tgt,yawr,cmdyaw,odomyaw\n')
     @staticmethod
     def pitch_from(q):
         sinp = 2.0 * (q.w * q.y - q.z * q.x)
         sinp = max(-1.0, min(1.0, sinp))
         return math.asin(sinp)
 
+    def update_cmd(self, msg):
+        self.cmd_vel = msg.linear.x 
+        self.cmd_yaw = msg.angular.z
+
     def update_odom(self, msg):
-        self.wheel_vel = msg.twist.twist.linear.x   # m/s
-        self.wheel_pos = msg.pose.pose.position.x   # m
+        self.wheel_vel = msg.twist.twist.linear.x   
+        self.wheel_pos = msg.pose.pose.position.x   
+        q = msg.pose.pose.orientation
+        siny = 2.0 * (q.w * q.z + q.x * q.y)
+        cosy = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        self.odom_yaw = math.atan2(siny, cosy)
 
     def balance(self, msg):
         pitch = self.pitch_from(msg.orientation)
         rate = msg.angular_velocity.y
 
-        self.pos_int += self.wheel_pos * 0.0042        # dt at 240 Hz
+       # setpoint slides forward at the commanded speed
+        self.target_pos += self.cmd_vel * 0.0042
+
+        MAX_LAG = 0.1
+        pos_error = self.wheel_pos - self.target_pos
+        if pos_error < -MAX_LAG:
+            self.target_pos = self.wheel_pos + MAX_LAG
+            pos_error = -MAX_LAG
+        elif pos_error > MAX_LAG:
+            self.target_pos = self.wheel_pos - MAX_LAG
+            pos_error = MAX_LAG
+
+        vel_error = self.wheel_vel - self.cmd_vel
+
+        self.pos_int += pos_error * 0.0042
         self.pos_int = max(-400.0, min(400.0, self.pos_int))
 
         torque = (self.K_pitch * pitch
                   + self.K_rate * rate
-                  + self.K_wvel * self.wheel_vel
-                  + self.K_wpos * self.wheel_pos
+                  + self.K_wvel * vel_error
+                  + self.K_wpos * pos_error
                   + self.K_int * self.pos_int)
         
         torque = max(-self.max_torque, min(self.max_torque, torque))
 
+        yaw_rate = msg.angular_velocity.z
+        yaw_torque = self.K_yaw * (self.cmd_yaw - yaw_rate)
+
+        left_t  = torque - yaw_torque
+        right_t = torque + yaw_torque
+
+        left_t  = max(-self.max_torque, min(self.max_torque, left_t))
+        right_t = max(-self.max_torque, min(self.max_torque, right_t))
+
         if abs(pitch) > self.fall_limit:
-            torque = 0.0
+            left_t = right_t = 0.0
 
         left, right = Float64(), Float64()
-        left.data = right.data = torque
+        left.data  = left_t
+        right.data = right_t
         self.left_pub.publish(left)
         self.right_pub.publish(right)
 
-#        self.get_logger().info(
- #           f'pitch={pitch:+.3f} rate={rate:+.3f} '
- #           f'wvel={self.wheel_vel:+.2f} wpos={self.wheel_pos:+.2f} '
-  #          f'tau={torque:+.3f}',
-   #         throttle_duration_sec=0.05)
+
         self._log.write(f'{time.monotonic():.4f},{pitch:.5f},{rate:.5f},'
                         f'{self.wheel_vel:.4f},{self.wheel_pos:.4f},{torque:.5f},'
-                        f'{self.pos_int:.3f}\n')
+                        f'{self.pos_int:.3f},{self.cmd_vel:.3f},{self.target_pos:.4f},'
+                        f'{yaw_rate:.4f},{self.cmd_yaw:.3f},'
+                        f'{self.odom_yaw:.4f}\n')
         
         self._n += 1
         now = time.monotonic()
@@ -123,12 +160,16 @@ class BalanceController(Node):
             self._n = 0
             self._t0 = now
 
+
     def stop(self):
-        zero = Float64()
-        zero.data = 0.0
-        self.left_pub.publish(zero)
-        self.right_pub.publish(zero)
         self._log.close()
+        try:
+            zero = Float64()
+            zero.data = 0.0
+            self.left_pub.publish(zero)
+            self.right_pub.publish(zero)
+        except Exception:
+            pass    # context already torn down by Ctrl+C; nothing to do
 
 
 def main(args=None):
@@ -141,7 +182,8 @@ def main(args=None):
     finally:
         node.stop()
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

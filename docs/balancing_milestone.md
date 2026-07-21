@@ -117,14 +117,28 @@ It settled at **163.5**.
 
 ## Simulation gotchas — every one of these cost hours
 
-**The physics engine matters more than anything else.** Under DART (gz-sim's default) the
-wheels chattered — wheel velocity reversing sign on 32–70% of samples, swinging ±30 rad/s,
-which made the velocity state useless as feedback. Switching to **bullet-featherstone**
-dropped that to 1% and the same controller suddenly worked:
+**Wheel collision shape matters enormously — and don't confuse it with the solver.**
+With **cylinder** wheel collisions under DART, the wheels chattered: velocity reversing
+sign on 32–70% of samples, swinging ±30 rad/s, which made the velocity state useless as
+feedback. Switching to **bullet-featherstone** dropped that to 1% and balancing worked.
 
-```bash
-gz sim --physics-engine gz-physics-bullet-featherstone-plugin ~/balance_world.sdf
-```
+That was the wrong conclusion. The real cause was the **cylinder-on-plane line contact**.
+Replacing the wheel collisions with **spheres** (point contact) fixes the chatter under
+DART too — and bullet-featherstone turns out to have a much worse problem:
+
+**Bullet-featherstone cannot steer.** It does not transmit differential wheel torque into
+yaw. Measured: 0.74 N·m of yaw moment held for 30 s produced **zero** rotation, confirmed
+by three independent measurements (IMU gyro z, odometry quaternion, `gz model` pose). A
+minimal two-wheeled test rig with no balance controller managed 0.014° in four seconds
+against a predicted ~100 rad/s². The same rig under DART spins freely.
+
+**Final answer: use DART (the default) with sphere wheel collisions.** Balances, drives,
+and turns.
+
+The wider lesson: we changed two things to fix the chatter (solver *and* collision shape)
+and never went back to test whether the first change was still needed. Change one thing
+at a time, and when you stack a second fix on top, re-test whether the first is still
+earning its place.
 
 **A print statement throttled the control loop to 10 Hz.** The node received 222 IMU
 messages/second and processed 10, while using ~0% CPU — blocked on stdout → `tee` → the
