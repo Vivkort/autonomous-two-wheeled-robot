@@ -3,41 +3,66 @@
 
     <link name="base_link">
         <visual>
-            <origin xyz="0 0 0.15" rpy="0 0 0"/>
+            <origin xyz="0 0 0.20" rpy="0 0 0"/>
             <geometry>
-                <box size="0.1 0.12 0.3"/>
+                <box size="0.1 0.12 0.4"/>
             </geometry>
             <material name="orange">
                 <color rgba="1.0 0.5 0.0 1"/>
             </material>
         </visual>
         <collision>
-            <origin xyz="0 0 0.15" rpy="0 0 0"/>
+            <origin xyz="0 0 0.20" rpy="0 0 0"/>
             <geometry>
-                <box size="0.1 0.12 0.3"/>
+                <box size="0.1 0.12 0.4"/>
             </geometry>
         </collision>
+        <!-- 2.0 kg / 0.4 m tall: models the real build (2x JGB37-520 ~400g, 3S LiPo
+             ~180g, RPLidar C1 ~120g, OAK-D Lite ~61g, ESP32+drivers, printed chassis).
+             Taller = slower fall: the tip rate goes as sqrt(g/L), so raising the CoM
+             from 0.15 m to 0.20 m buys reaction time. Box inertia about the CoM:
+             ixx = m(y²+z²)/12, iyy = m(x²+z²)/12, izz = m(x²+y²)/12 -->
         <inertial>
-            <origin xyz="0 0 0.15" rpy="0 0 0"/>
-            <mass value="1.0"/>
-            <inertia ixx="0.0087" ixy="0.0" ixz="0.0" iyy="0.0083" iyz="0.0" izz="0.002"/>
+            <origin xyz="0 0 0.20" rpy="0 0 0"/>
+            <mass value="2.0"/>
+            <inertia ixx="0.0291" ixy="0.0" ixz="0.0" iyy="0.0283" iyz="0.0" izz="0.0041"/>
         </inertial>
     </link>
 
     <link name="left_wheel">
         <visual>
             <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-            <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+            <geometry><cylinder radius="0.08" length="0.08"/></geometry>
             <material name="black"><color rgba="0.1 0.1 0.1 1.0"/></material>
         </visual>
         <collision>
             <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-            <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+            <!-- 0.08 wide, not 0.04: a thin cylinder edge-on to a plane gives Gazebo
+                 a near-line contact, and friction is unreliable across it. Wider tyre
+                 = more contact points = the wheels actually grip instead of spinning. -->
+            <geometry><cylinder radius="0.08" length="0.08"/></geometry>
         </collision>
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <mass value="0.1"/>
-            <inertia ixx="0.00008" ixy="0.0" ixz="0.0" iyy="0.00008" iyz="0.0" izz="0.00013"/>
+            <!-- Spin axis is Y (joint axis 0 1 0), so the spin inertia (1/2·m·r² =
+                 0.000125) belongs on iyy. It was on izz, i.e. written for a Z-axis
+                 cylinder while the wheel actually turns about Y — so the wheel spun
+                 up ~1.6x too easily and broke traction sooner. -->
+            <!-- iyy is the SPIN axis. 0.000125 is the bare wheel disc; the real
+                 drivetrain adds the motor rotor inertia reflected through the
+                 gearbox (~30:1 => rotor inertia x900), which dominates. 0.001
+                 models wheel + geared motor. Without it the wheel spins up at
+                 ~3200 rad/s^2 -- faster than the 100 Hz control loop can observe. -->
+            <!-- iyy is the SPIN axis: wheel disc + motor rotor reflected through the
+                 ~30:1 gearbox (rotor inertia x900), which dominates. Without it the
+                 wheel spins up at ~3200 rad/s^2, faster than the 100 Hz loop can see.
+                 ixx/izz must satisfy the triangle inequality (ixx+izz >= iyy) or
+                 Gazebo rejects the link with "invalid inertia". -->
+            <!-- r=0.08 wheel: disc inertia 1/2*m*r^2 = 0.00032, plus motor rotor
+                 reflected through the ~30:1 gearbox (~0.0009), which dominates.
+                 ixx/izz must satisfy ixx+izz >= iyy or Gazebo rejects the link. -->
+            <inertia ixx="0.00065" ixy="0.0" ixz="0.0" iyy="0.0012" iyz="0.0" izz="0.00065"/>
         </inertial>
     </link>
     <joint name="left_wheel_joint" type="continuous">
@@ -50,17 +75,37 @@
     <link name="right_wheel">
         <visual>
             <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-            <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+            <geometry><cylinder radius="0.08" length="0.08"/></geometry>
             <material name="black"><color rgba="0.1 0.1 0.1 1.0"/></material>
         </visual>
         <collision>
             <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-            <geometry><cylinder radius="0.05" length="0.04"/></geometry>
+            <!-- 0.08 wide, not 0.04: a thin cylinder edge-on to a plane gives Gazebo
+                 a near-line contact, and friction is unreliable across it. Wider tyre
+                 = more contact points = the wheels actually grip instead of spinning. -->
+            <geometry><cylinder radius="0.08" length="0.08"/></geometry>
         </collision>
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <mass value="0.1"/>
-            <inertia ixx="0.00008" ixy="0.0" ixz="0.0" iyy="0.00008" iyz="0.0" izz="0.00013"/>
+            <!-- Spin axis is Y (joint axis 0 1 0), so the spin inertia (1/2·m·r² =
+                 0.000125) belongs on iyy. It was on izz, i.e. written for a Z-axis
+                 cylinder while the wheel actually turns about Y — so the wheel spun
+                 up ~1.6x too easily and broke traction sooner. -->
+            <!-- iyy is the SPIN axis. 0.000125 is the bare wheel disc; the real
+                 drivetrain adds the motor rotor inertia reflected through the
+                 gearbox (~30:1 => rotor inertia x900), which dominates. 0.001
+                 models wheel + geared motor. Without it the wheel spins up at
+                 ~3200 rad/s^2 -- faster than the 100 Hz control loop can observe. -->
+            <!-- iyy is the SPIN axis: wheel disc + motor rotor reflected through the
+                 ~30:1 gearbox (rotor inertia x900), which dominates. Without it the
+                 wheel spins up at ~3200 rad/s^2, faster than the 100 Hz loop can see.
+                 ixx/izz must satisfy the triangle inequality (ixx+izz >= iyy) or
+                 Gazebo rejects the link with "invalid inertia". -->
+            <!-- r=0.08 wheel: disc inertia 1/2*m*r^2 = 0.00032, plus motor rotor
+                 reflected through the ~30:1 gearbox (~0.0009), which dominates.
+                 ixx/izz must satisfy ixx+izz >= iyy or Gazebo rejects the link. -->
+            <inertia ixx="0.00065" ixy="0.0" ixz="0.0" iyy="0.0012" iyz="0.0" izz="0.00065"/>
         </inertial>
     </link>
     <joint name="right_wheel_joint" type="continuous">
@@ -87,22 +132,59 @@
         <origin xyz="0 0 0.1" rpy="0 0 0"/>
     </joint>
     <gazebo>
-        <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
-            <left_joint>left_wheel_joint</left_joint>
-            <right_joint>right_wheel_joint</right_joint>
-            <wheel_separation>0.14</wheel_separation>
-            <wheel_radius>0.05</wheel_radius>
-            <topic>cmd_vel</topic>
-            <odom_topic>odom</odom_topic>
-            <frame_id>odom</frame_id>
-            <child_frame_id>base_link</child_frame_id>
-            <tf_topic>tf</tf_topic>
-        </plugin> 
+        <!-- Torque control for the LQR run. ApplyJointForce ignores <topic> and
+             always listens on /model/<model>/joint/<joint>/cmd_force (gz.msgs.Double).
+             Wheel/body state comes from JointStatePublisher below, not /odom -
+             DiffDrive is what provided /odom, and it's gone. -->
+        <plugin filename="gz-sim-apply-joint-force-system" name="gz::sim::systems::ApplyJointForce">
+            <joint_name>left_wheel_joint</joint_name>
+        </plugin>
+        <plugin filename="gz-sim-apply-joint-force-system" name="gz::sim::systems::ApplyJointForce">
+            <joint_name>right_wheel_joint</joint_name>
+        </plugin>
+        <!-- Publishes wheel angle + angular velocity so the controller can see
+             the two states it was previously blind to. Default topic (no <topic>
+             element, after the ApplyJointForce lesson):
+             /world/<world_name>/model/<model_name>/joint_state  (gz.msgs.Model)
+             Here: /world/sensor_world/model/craig2/joint_state -->
+        <!-- OdometryPublisher, NOT JointStatePublisher.
+             JointState carries a list of joint-name STRINGS, and deserialising
+             string arrays in Python at ~700 Hz consumed most of a core - the
+             balance callback was starved down to 10 Hz while the IMU published
+             at 222 Hz. JointStatePublisher also ignores <update_rate>, so the
+             firehose couldn't be capped at the source.
+             Odometry is compact and numeric, and <odom_publish_frequency> works.
+             Publishes gz.msgs.Odometry on /model/craig2/odometry.
+             NOTE: gives position/velocity in METRES, not wheel radians - the
+             K_wvel/K_wpos gains must be divided by the wheel radius. -->
+        <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+            <odom_frame>odom</odom_frame>
+            <robot_base_frame>base_link</robot_base_frame>
+            <odom_publish_frequency>50</odom_publish_frequency>
+            <dimensions>3</dimensions>
+        </plugin>
     </gazebo>
+    <!-- Explicit wheel friction. Default surface friction left us needing mu>=0.48
+         right at the moment of correction, so the wheels broke loose exactly when
+         the righting force mattered. Rubber on a hard floor is realistically
+         0.8-1.2; 1.5 gives margin so traction stops being the limiting factor. -->
+    <gazebo reference="left_wheel">
+        <mu1>1.5</mu1>
+        <mu2>1.5</mu2>
+    </gazebo>
+    <gazebo reference="right_wheel">
+        <mu1>1.5</mu1>
+        <mu2>1.5</mu2>
+    </gazebo>
+
     <gazebo reference="imu_link">
         <sensor name="imu" type="imu">
             <topic>imu</topic>
-            <update_rate>100</update_rate>
+            <!-- 250 Hz, not 100. craig2's tilt error doubles every ~82 ms, so at
+                 100 Hz the controller only gets ~8 looks per doubling; at 250 Hz
+                 it gets ~20. Reacting at 1 degree instead of 5 means the
+                 correction is small, and small corrections don't cause overshoot. -->
+            <update_rate>250</update_rate>
             <always_on>true</always_on>
             <gz_frame_id>imu_link</gz_frame_id>
         </sensor>

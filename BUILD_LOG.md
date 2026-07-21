@@ -3,14 +3,13 @@
 Newest entries at the top. Keep it honest — log what broke and how you fixed it, not just the wins. Future-you (and anyone reading this repo) learns the most from the debugging.
 
 **Entry template:**
-## YYYY-MM-DD — short title
-**Goal today:**
-**What I did:**
-**What worked:**
-**What broke / what I'm stuck on:**
-**How I fixed it (or next step to try):**
-**Time spent:**
-**Photo/video:** media/filename
+## 2026-07-18 & 19 — Balancing
+**Goal today:** Try to get Craig V2 to balance on his own
+**What I did:** Made Craig V2 (Two wheels, a bit taller), attempted to make him stand.
+**What worked:** Craig could stand for about half a second
+**What broke / what I'm stuck on:** Literally EVERYTHING
+**How I fixed it (or next step to try):** I haven't fixed ANYTHING
+**Time spent:** 8 hours
 
 ## 2026-07-17 — Simulation
 **Goal today:** Get basic autonomy/pathfinding for Craig(my robot's name) and get his lidar up and running.

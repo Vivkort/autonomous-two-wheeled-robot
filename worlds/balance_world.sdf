@@ -1,0 +1,79 @@
+<?xml version="1.0" ?>
+<!--
+  Dedicated world for balance testing.
+
+  Everything here is stated explicitly. sensor_world.sdf is for SLAM/Nav2 and
+  has walls and obstacles that craig2 can collide with while drifting - a
+  collision looks identical to a control failure in the logs, which cost us
+  real debugging time. This world has nothing to hit.
+
+  Differences from sensor_world.sdf:
+    - explicit <physics>: step size, RTF and solver iterations are pinned
+      instead of inherited from unstated defaults
+    - explicit gravity
+    - explicit ground friction AND contact stiffness/damping
+    - no walls, no obstacles, no lidar/camera Sensors system (nothing to render,
+      so more CPU for physics)
+-->
+<sdf version="1.10">
+  <world name="balance_world">
+
+    <!-- PINNED PHYSICS. 1 ms steps = 1000 Hz physics against a 250 Hz control
+         loop, so the integrator is never the limiting factor. real_time_factor
+         of 1.0 keeps sim time and wall time locked together: if this drifts,
+         the ROS node (which runs on wall time) sees a different effective
+         control rate than the gains were designed for. -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <gravity>0 0 -9.81</gravity>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+
+    <light type="directional" name="sun">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.5</mu>
+                <mu2>1.5</mu2>
+              </ode>
+            </friction>
+            <!-- Explicit contact stiffness/damping. Left at defaults, a light
+                 robot on a perfectly rigid plane can chatter, and that chatter
+                 shows up as noise on the gyro - which the D term amplifies. -->
+            <contact>
+              <ode>
+                <kp>1e6</kp>
+                <kd>100</kd>
+                <min_depth>0.001</min_depth>
+              </ode>
+            </contact>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+          <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>
