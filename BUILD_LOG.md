@@ -2,6 +2,15 @@
 
 Newest entries at the top. Keep it honest — log what broke and how you fixed it, not just the wins. Future-you (and anyone reading this repo) learns the most from the debugging.
 
+## 2026-07-21 — Craig V2 NAVIGATES (SLAM + Nav2 while balancing)
+**Goal today:** Mount the lidar on craig2, port SLAM + Nav2 over from craig1, and get autonomous navigation working *while he balances*.
+**What I did:** Mounted the lidar, re-derived the LQR gains for the new mass (K_pitch 4.932→4.997). Built the TF tree from scratch (map→odom→base_link→lidar_link) — craig2 had none because I dropped DiffDrive. Wrote a **scan-gate node** that only passes lidar scans when |pitch| < 7.2°. Fixed a phantom odometry velocity. Ported slam_params + nav2_params with balancer-specific accel/velocity limits. Wrote a one-command launch file (`scripts/sim.sh`) and a `reset_craig.sh`. Wrote docs/slam_nav2_milestone.md.
+**What worked:** EVERYTHING, eventually. Clean map of the walled room — straight single walls, both obstacles as hollow shapes — and Nav2 drives him goal-to-goal without falling. One command brings the whole stack up.
+**What broke / what I'm stuck on:** So much. (1) When he falls, the lidar (bolted to base_link) tilts from horizontal to vertical and sweeps floor+sky — slam scan-matches that garbage and *overwrites the good map*. A fallen balancer doesn't just stop mapping, it eats the map. (2) The odom velocity (twist.linear.x) was a phantom — read a near-constant ~0.11 m/s while he was actually rocking around standstill, so the velocity-damping term had nothing real to damp and he sat in a slow limit cycle. (3) He fell mid-run because a single `CONTROL RATE` print stalled the control loop for **2.5 seconds** (11 tip-doublings past unrecoverable). (4) My one-command launch file ran slam_toolbox as a bare node, which left it stuck `unconfigured` — it showed in `ros2 node list` but never subscribed to scans or published map→odom. Lost a while because "it's in the node list" fooled me. (5) A dozen stale-subscription issues: restart subscribers after you respawn what they publish, or they go quiet with no error.
+**How I fixed it (or next step to try):** Scan gate on /scan → /scan_gated, threshold = arcsin(0.5 lidar height / 4.0 range) = 7.2°. Computed wheel velocity by differencing odom *position* (which is clean) instead of trusting the twist. Deleted the print, dropped real_time_factor to 0.5 to double delay tolerance. Made the launch **include** slam_toolbox's own `online_async_launch.py` so the lifecycle configure→activate actually happens. Capped lidar range to 4.0 m so a lean can't put the beam through a wall or into the floor.
+**Next:** hardware build. On a real ESP32 none of the latency that dominated this exists, and real rubber has friction without a `<surface>` tag.
+**Time spent:** ~big day, 6 hrs.
+
 **Entry template:**
 ## 2026-07-20 — Craig V2 BALANCES!
 **Goal today:** Get craig2 standing on his own, and holding position.

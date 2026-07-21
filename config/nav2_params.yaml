@@ -29,11 +29,13 @@ controller_server:
       stateful: True
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.5
+      # 0.3 m/s, not 0.5. Accuracy over speed - craig2 leans to accelerate.
+      desired_linear_vel: 0.3
       lookahead_dist: 0.6
       min_lookahead_dist: 0.3
       max_lookahead_dist: 0.9
-      rotate_to_heading_angular_vel: 1.0
+      # 0.5 rad/s in-place turn. K_yaw is 0.5; 1.0 rad/s outran the yaw loop.
+      rotate_to_heading_angular_vel: 0.5
       max_angular_accel: 3.2
       use_rotate_to_heading: true
       allow_reversing: false
@@ -63,8 +65,11 @@ local_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 12.0
-          obstacle_max_range: 10.0
+          # craig2's lidar is capped at 4.0 m (pitch immunity to 7.2 deg).
+          # Left at 12/10 these treat max-range no-returns as clear space and
+          # Nav2 plans confidently through walls it cannot see.
+          raytrace_max_range: 4.0
+          obstacle_max_range: 3.5
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
@@ -93,8 +98,11 @@ global_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 12.0
-          obstacle_max_range: 10.0
+          # craig2's lidar is capped at 4.0 m (pitch immunity to 7.2 deg).
+          # Left at 12/10 these treat max-range no-returns as clear space and
+          # Nav2 plans confidently through walls it cannot see.
+          raytrace_max_range: 4.0
+          obstacle_max_range: 3.5
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -142,10 +150,24 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.0, 2.0]
-    min_velocity: [-0.5, 0.0, -2.0]
-    max_accel: [2.5, 0.0, 3.2]
-    max_decel: [-2.5, 0.0, -3.2]
+    # BALANCER LIMITS - the most important block in this file.
+    #
+    # To accelerate at rate a, an inverted pendulum must lean at
+    # theta = arctan(a/g). The stock 2.5 m/s^2 demands a 14.3 deg lean, held -
+    # against a measured cruising lean of 3.8 deg and an LQR linearised about
+    # upright. It throws him on his face.
+    #
+    # The lidar range cap (4.0 m at 0.50 m mounting height) gives pitch
+    # immunity to 7.2 deg, so:
+    #     a_max = g*tan(7.2 deg) = 1.24 m/s^2
+    # 1.0 keeps the controller and the scan geometry inside the same envelope.
+    #
+    # Decel is the dangerous direction: slowing down is non-minimum-phase, so
+    # he must briefly speed up before he can lean back to brake.
+    max_velocity: [0.3, 0.0, 1.0]
+    min_velocity: [-0.3, 0.0, -1.0]
+    max_accel: [1.0, 0.0, 3.2]
+    max_decel: [-1.0, 0.0, -3.2]
     odom_topic: "odom"
     odom_duration: 0.1
 

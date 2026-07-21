@@ -34,6 +34,7 @@ setup(
             'wall_avoider_proportional = robot_intro.wall_avoider_proportional:main',
             'go_to_goal = robot_intro.go_to_goal:main',
             'balance_controller = robot_intro.balance_controller:main',
+            'scan_gate = robot_intro.scan_gate:main',
         ],
     },
 )

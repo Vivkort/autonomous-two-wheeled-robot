@@ -31,7 +31,7 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64
 from geometry_msgs.msg import Twist
 
-ODOM_TOPIC = '/model/craig2/odometry'
+ODOM_TOPIC = '/odom'
 
 
 class BalanceController(Node):
@@ -39,8 +39,8 @@ class BalanceController(Node):
         super().__init__('balance_controller')
 
         # --- LQR gains, per wheel, in the units actually measured -------------
-        self.K_pitch = 4.932     # N.m per rad of lean
-        self.K_rate = 0.446   # N.m per rad/s of tipping
+        self.K_pitch = 4.997     # N.m per rad of lean
+        self.K_rate = 0.462   # N.m per rad/s of tipping
         self.K_wvel = 1.0  # N.m per rad/s of wheel speed
         self.K_wpos = 0.02887   # N.m per rad of wheel angle
         self.K_int = 0.0015       # in __init__
@@ -67,7 +67,7 @@ class BalanceController(Node):
         self.target_pos = 0.0
         self.cmd_vel = 0.0
         self.cmd_yaw = 0.0
-
+        self.prev_t = None
         self.left_pub = self.create_publisher(
             Float64, '/model/craig2/joint/left_wheel_joint/cmd_force', 10)
         self.right_pub = self.create_publisher(
@@ -92,8 +92,12 @@ class BalanceController(Node):
         self.cmd_yaw = msg.angular.z
 
     def update_odom(self, msg):
-        self.wheel_vel = msg.twist.twist.linear.x   
-        self.wheel_pos = msg.pose.pose.position.x   
+        new_pos = msg.pose.pose.position.x
+        t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        if self.prev_t is not None and t > self.prev_t:
+            self.wheel_vel = (new_pos - self.wheel_pos) / (t - self.prev_t)
+        self.wheel_pos = new_pos
+        self.prev_t = t 
         q = msg.pose.pose.orientation
         siny = 2.0 * (q.w * q.z + q.x * q.y)
         cosy = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
@@ -156,7 +160,6 @@ class BalanceController(Node):
         self._n += 1
         now = time.monotonic()
         if now - self._t0 >= 2.0:
-            self.get_logger().info(f'CONTROL RATE: {self._n / (now - self._t0):.0f} Hz')
             self._n = 0
             self._t0 = now
 

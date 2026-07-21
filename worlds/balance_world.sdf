@@ -35,6 +35,12 @@
     <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
     <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
     <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <!-- REQUIRED for the lidar to produce data. Without this the gpu_lidar sensor
+         loads silently and /scan never publishes. Costs render time, which is why
+         it was left out while this world was physics-only. -->
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
 
     <light type="directional" name="sun">
       <cast_shadows>false</cast_shadows>
